@@ -45,6 +45,7 @@ export default function TradePage() {
   const [optimisticTrades, setOptimisticTrades] = useState([]);
   const [rightActiveTab, setRightActiveTab] = useState("polymarket");
   const [activeTimeframe, setActiveTimeframe] = useState("15m");
+  const [mobileTab, setMobileTab] = useState("markets"); // "markets" | "trade" | "vault"
 
   // Sync balance with Firestore portfolio
   useEffect(() => {
@@ -286,15 +287,20 @@ export default function TradePage() {
             </div>
           </motion.div>
 
-          <div className="flex flex-col border-b border-white/5 bg-[#080808]/90 backdrop-blur-md shadow-xl">
+          {/* Desktop Tickers */}
+          <div className="hidden md:flex flex-col border-b border-white/5 bg-[#080808]/90 backdrop-blur-md shadow-xl">
             <TopBarTicker />
             <MacroTicker />
+          </div>
+          {/* Mobile Ticker (Compact single row) */}
+          <div className="flex md:hidden border-b border-white/5 bg-[#080808]/90 backdrop-blur-md shadow-xl h-8 items-center overflow-hidden">
+            <TopBarTicker />
           </div>
         </div>
       )}
 
       {/* Row 2: Workspace (Viewport height minus header) */}
-      <div className="flex-1 w-full flex flex-row overflow-hidden relative">
+      <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-[20%_55%_25%] overflow-hidden relative pb-16 md:pb-0 h-[calc(100vh-130px)] md:h-[calc(100vh-115px)]">
         {/* Scanline overlay for trade floor */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.03] scanlines z-10" />
 
@@ -303,7 +309,7 @@ export default function TradePage() {
           {!zenMode && (
             <motion.div
               variants={sidebarVariants}
-              className="flex-shrink-0 w-[320px] h-full border-r border-white/5 bg-[#020205]/80 overflow-hidden flex flex-col"
+              className={`${mobileTab === 'markets' ? 'flex h-[45%] md:h-full' : 'hidden'} md:flex flex-col border-r border-white/5 bg-[#020205]/80 overflow-hidden`}
             >
               <Watchlist
                 onAssetSelect={handleAssetChange}
@@ -314,9 +320,15 @@ export default function TradePage() {
         </AnimatePresence>
 
         {/* COLUMN 2: CENTRAL OPERATIONS MATRIX (Chart + Health Stats + Positions) */}
-        <div className="flex-1 h-full flex flex-col gap-3 p-3 overflow-hidden">
+        <div className={`
+          ${(mobileTab === 'markets' || mobileTab === 'vault') ? 'flex' : 'hidden'}
+          md:flex flex-col gap-3 p-3 overflow-hidden h-full
+        `}>
           {/* Top Panel: Interactive Chart */}
-          <div className="flex-[0.52] min-h-[300px] glass-panel border-white/10 overflow-hidden shadow-2xl relative">
+          <div className={`
+            ${mobileTab === 'markets' ? 'flex flex-1 md:flex-[0.52]' : 'hidden'}
+            md:flex min-h-[250px] md:min-h-[300px] glass-panel border-white/10 overflow-hidden shadow-2xl relative
+          `}>
             <Chart
               selectedAsset={selectedAsset}
               onAssetSearch={handleAssetChange}
@@ -334,13 +346,19 @@ export default function TradePage() {
 
           {/* Middle Panel: Central Account Health Stats Grid */}
           {!zenMode && (
-            <div className="h-[110px] w-full flex-shrink-0 flex items-center justify-center">
+            <div className={`
+              ${mobileTab === 'vault' ? 'flex h-[110px]' : 'hidden'}
+              md:flex h-[110px] w-full flex-shrink-0 items-center justify-center
+            `}>
               <StatsBar optimisticTrades={optimisticTrades} />
             </div>
           )}
 
           {/* Bottom Panel: Active Positions Engine */}
-          <div className="flex-grow overflow-hidden glass-panel border-white/10 p-3 shadow-2xl flex flex-col">
+          <div className={`
+            ${mobileTab === 'vault' ? 'flex flex-1' : 'hidden'}
+            md:flex overflow-hidden glass-panel border-white/10 p-3 shadow-2xl flex-col
+          `}>
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white mb-2 border-b border-white/5 pb-1.5 flex-shrink-0">
               Active Positions
             </h3>
@@ -361,7 +379,10 @@ export default function TradePage() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 300, opacity: 0 }}
               transition={{ type: "spring", stiffness: 100, damping: 25 }}
-              className="flex-shrink-0 w-[380px] h-full flex flex-col gap-3 p-3 pl-0 overflow-hidden"
+              className={`
+                ${mobileTab === 'trade' ? 'flex flex-col gap-3 p-3' : 'hidden'}
+                md:flex md:flex-col gap-3 p-3 md:pl-0 overflow-hidden h-full
+              `}
             >
               {/* Top Panel: Execution Terminal */}
               <div className="flex-[0.5] overflow-hidden glass-panel border-white/10 shadow-2xl">
@@ -429,6 +450,33 @@ export default function TradePage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Mobile Bottom Navigation Bar (Stick to bottom on screens < 768px) */}
+      {!zenMode && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#04040A] border-t border-white/5 flex items-center justify-around z-[150] backdrop-blur-xl">
+          <button
+            onClick={() => { triggerHaptic(); setMobileTab("markets"); }}
+            className={`flex flex-col items-center gap-1 transition-all py-2 px-4 ${mobileTab === 'markets' ? 'text-[#D4AF37]' : 'text-gray-500 hover:text-white'}`}
+          >
+            <Zap size={18} className={mobileTab === 'markets' ? 'text-[#D4AF37]' : 'text-gray-500'} />
+            <span className="text-[9px] font-header font-black uppercase tracking-wider">Markets</span>
+          </button>
+          <button
+            onClick={() => { triggerHaptic(); setMobileTab("trade"); }}
+            className={`flex flex-col items-center gap-1 transition-all py-2 px-4 ${mobileTab === 'trade' ? 'text-[#D4AF37]' : 'text-gray-500 hover:text-white'}`}
+          >
+            <Activity size={18} className={mobileTab === 'trade' ? 'text-[#D4AF37]' : 'text-gray-500'} />
+            <span className="text-[9px] font-header font-black uppercase tracking-wider">Trade</span>
+          </button>
+          <button
+            onClick={() => { triggerHaptic(); setMobileTab("vault"); }}
+            className={`flex flex-col items-center gap-1 transition-all py-2 px-4 ${mobileTab === 'vault' ? 'text-[#D4AF37]' : 'text-gray-500 hover:text-white'}`}
+          >
+            <Wallet size={18} className={mobileTab === 'vault' ? 'text-[#D4AF37]' : 'text-gray-500'} />
+            <span className="text-[9px] font-header font-black uppercase tracking-wider">Vault</span>
+          </button>
+        </div>
+      )}
 
       {/* Zen Mode Escape Alert */}
       <AnimatePresence>

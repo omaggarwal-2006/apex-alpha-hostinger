@@ -87,7 +87,7 @@ export default function StatsBar({ optimisticTrades = [] }) {
             <Wallet size={14} className="text-white" />
           </div>
           <h2 className="text-2xl font-black text-white tracking-tighter mono-nums flex items-center gap-1">
-            <RollingNumber prefix={symbol} value={convertedEquity.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} />
+            <RollingNumber prefix={symbol} value={Math.max(0, convertedEquity).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} />
           </h2>
           
           <div className="mt-2 flex items-center justify-between">

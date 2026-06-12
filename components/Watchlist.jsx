@@ -7,6 +7,16 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 
 const PINNED = ["^NSEI", "^NSEBANK", "BTC-USD", "ETH-USD", "RELIANCE.NS", "GC=F", "SOL-USD"];
 
+const NICE_NAMES = {
+  "^NSEI": "NIFTY 50",
+  "^NSEBANK": "NIFTY BANK",
+  "BTC-USD": "BITCOIN",
+  "ETH-USD": "ETHEREUM",
+  "RELIANCE.NS": "RELIANCE",
+  "GC=F": "GOLD / USD",
+  "SOL-USD": "SOLANA"
+};
+
 export default function Watchlist({ onAssetSelect, onAction }) {
   const [data, setData] = useState({});
   const { format } = useCurrency();
@@ -51,7 +61,7 @@ export default function Watchlist({ onAssetSelect, onAction }) {
               layout
               key={symbol}
               onClick={() => onAssetSelect(symbol)}
-              className={`group relative px-4 py-3.5 border-b border-white/5 cursor-pointer overflow-hidden transition-all ${isHot ? "volume-heat" : "hover:bg-[#D4AF37]/5"}`}
+              className={`group relative px-5 py-4 border-b border-white/5 cursor-pointer overflow-hidden transition-all ${isHot ? "volume-heat" : "hover:bg-[#D4AF37]/5"}`}
             >
               {/* Left accent bar */}
               <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-7 rounded-r-full transition-all ${isUp ? "bg-[#00FF94]" : "bg-[#FF3131]"} ${isHot ? "h-10 shadow-[0_0_8px_rgba(212,175,55,0.6)]" : ""}`} />
@@ -59,8 +69,8 @@ export default function Watchlist({ onAssetSelect, onAction }) {
               <div className="flex justify-between items-center relative z-10">
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <h4 className="text-[12px] font-black text-white group-hover:text-[#D4AF37] transition-colors font-['Inter']">
-                      {item?.name || symbol.split('.')[0]}
+                    <h4 className="text-[13px] font-bold text-white group-hover:text-[#D4AF37] transition-colors font-header tracking-wide uppercase">
+                      {NICE_NAMES[symbol] || item?.name || symbol.split('.')[0]}
                     </h4>
                     {isHot && (
                       <motion.div
@@ -72,7 +82,9 @@ export default function Watchlist({ onAssetSelect, onAction }) {
                       </motion.div>
                     )}
                   </div>
-                  <p className="text-[9px] text-gray-700 font-mono uppercase mt-0.5">{symbol}</p>
+                  {(NICE_NAMES[symbol] || symbol.split('.')[0]) !== symbol && (
+                    <p className="text-[9px] text-gray-700 font-mono uppercase mt-0.5">{symbol}</p>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="text-[12px] font-mono font-bold text-white" style={{ fontFamily: "'Roboto Mono', monospace" }}>

@@ -7,6 +7,8 @@ import { logOut } from "@/lib/firebase-utils";
 import { motion } from "framer-motion";
 import { Globe, Activity, Zap, Headphones, User } from "lucide-react";
 import { startAmbientDrone, stopAmbientDrone, playMechanicalClick } from "@/utils/sound";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import CurrencySelector from "@/components/CurrencySelector";
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
@@ -17,6 +19,10 @@ export default function Navbar() {
     nyse: "CLOSED",
     crypto: "REGULAR"
   });
+
+  const { symbol, convert } = useCurrency();
+  const displayBalance = Math.min(navBalance, 1000000);
+  const convertedBalance = convert(displayBalance);
 
   useEffect(() => {
     const localBal = localStorage.getItem("apex_local_balance");
@@ -82,9 +88,14 @@ export default function Navbar() {
     >
       <div className="flex items-center gap-6">
         <Link href="/">
-          <h1 className="text-[#D4AF37] text-2xl font-black tracking-tighter glow-gold transition-all hover:scale-105 active:scale-95 cursor-pointer">
-            APEX ALPHA <span className="text-[10px] font-mono border border-[#D4AF37]/30 px-1 bg-[#D4AF37]/10 ml-1 rounded">NG</span>
-          </h1>
+          <div className="flex flex-col cursor-pointer transition-all hover:scale-102 active:scale-98">
+            <h1 className="text-[#D4AF37] text-xl md:text-2xl font-black tracking-tighter glow-gold flex items-center leading-none">
+              APEX ALPHA <span className="text-[9px] md:text-[10px] font-mono border border-[#D4AF37]/30 px-1 bg-[#D4AF37]/10 ml-1 rounded">NG</span>
+            </h1>
+            <span className="text-[7.5px] md:text-[8px] font-header font-black text-[#D4AF37] tracking-[0.22em] uppercase mt-1 leading-none">
+              Vantage Authorized IB Partner
+            </span>
+          </div>
         </Link>
         
         {/* Market Pulse */}
@@ -105,38 +116,43 @@ export default function Navbar() {
         </div>
       </div>
       
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2 md:gap-6">
         {user ? (
           <>
-            <Link href="/trade" className="text-white/60 hover:text-[#f0c040] transition font-header font-black text-[10px] uppercase tracking-[0.2em]">Trade</Link>
-            <Link href="/portfolio" className="text-white/60 hover:text-[#f0c040] transition font-header font-black text-[10px] uppercase tracking-[0.2em]">Vault</Link>
-            <Link href="/audit" className="text-[#f0c040] hover:brightness-125 transition font-header font-black text-[10px] uppercase tracking-[0.2em]">Audit</Link>
-            <Link href="/partner" className="text-[#f0c040] hover:brightness-125 transition font-header font-black text-[10px] uppercase tracking-[0.2em]">Partner</Link>
-            <div className="h-5 w-px bg-white/10 mx-2"></div>
+            <Link href="/trade" className="hidden md:inline-block text-white/60 hover:text-[#f0c040] transition font-header font-black text-[10px] uppercase tracking-[0.2em]">Trade</Link>
+            <Link href="/portfolio" className="hidden md:inline-block text-white/60 hover:text-[#f0c040] transition font-header font-black text-[10px] uppercase tracking-[0.2em]">Vault</Link>
+            <Link href="/audit" className="hidden md:inline-block text-[#f0c040] hover:brightness-125 transition font-header font-black text-[10px] uppercase tracking-[0.2em]">Audit</Link>
+            <Link href="/partner" className="hidden md:inline-block text-[#f0c040] hover:brightness-125 transition font-header font-black text-[10px] uppercase tracking-[0.2em]">Partner</Link>
+            <div className="hidden md:block h-5 w-px bg-white/10 mx-2"></div>
             
             {/* Sovereign Soundscapes Focus Synth Toggle */}
             <button
               onClick={toggleDrone}
               title={isDroneActive ? "Mute Sovereign Soundscape" : "Activate Lo-Fi Cyber Focus Soundscape"}
-              className={`p-2 border rounded-full transition-all flex items-center justify-center ${isDroneActive ? 'bg-[#FFBF00]/20 border-[#FFBF00] text-[#FFBF00] shadow-[0_0_12px_rgba(255,191,0,0.35)]' : 'bg-white/5 border-white/10 text-gray-500 hover:text-white'}`}
+              className={`hidden md:flex p-2 border rounded-full transition-all items-center justify-center ${isDroneActive ? 'bg-[#FFBF00]/20 border-[#FFBF00] text-[#FFBF00] shadow-[0_0_12px_rgba(255,191,0,0.35)]' : 'bg-white/5 border-white/10 text-gray-500 hover:text-white'}`}
             >
               <Headphones size={13} className={isDroneActive ? 'animate-bounce' : ''} />
             </button>
 
-            <div className="h-5 w-px bg-white/10 mx-2"></div>
+            <div className="hidden md:block h-5 w-px bg-white/10 mx-2"></div>
 
             {/* Sovereign Cash Wallet Balance */}
-            <div className="flex items-center gap-2 bg-[#FFBF00]/10 border border-[#FFBF00]/20 px-3 py-1.5 rounded-sm">
-              <span className="text-[7.5px] font-mono text-[#FFBF00] tracking-[0.2em] font-black">CASH</span>
-              <span className="text-[10px] font-mono font-black text-white">
-                ${navBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div className="flex items-center gap-1.5 md:gap-2 bg-[#FFBF00]/10 border border-[#FFBF00]/20 px-2 py-1 md:px-3 md:py-1.5 rounded-sm">
+              <span className="text-[6.5px] md:text-[7.5px] font-mono text-[#FFBF00] tracking-[0.2em] font-black">CASH</span>
+              <span className="text-[9px] md:text-[10px] font-mono font-black text-white">
+                {symbol}{convertedBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
 
-            <div className="h-5 w-px bg-white/10 mx-2"></div>
+            {/* Currency Selector next to Cash Display */}
+            <div className="flex items-center">
+              <CurrencySelector />
+            </div>
+
+            <div className="hidden md:block h-5 w-px bg-white/10 mx-2"></div>
             <button 
               onClick={handleLogout} 
-              className="text-[#f0c040] hover:bg-[#f0c040]/10 font-header font-black text-[10px] border border-[#f0c040]/30 px-6 py-2.5 rounded-none transition-all uppercase tracking-[0.2em]"
+              className="hidden md:block text-[#f0c040] hover:bg-[#f0c040]/10 font-header font-black text-[10px] border border-[#f0c040]/30 px-6 py-2.5 rounded-none transition-all uppercase tracking-[0.2em]"
             >
               Terminate Session
             </button>

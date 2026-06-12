@@ -375,7 +375,7 @@ export default function OrderPanel({
             <div className="p-1.5 border border-white/20 text-white"><Zap size={12} /></div>
             <div>
               <h2 className="text-white font-header font-black text-[10px] uppercase tracking-[0.15em]">Execution Terminal</h2>
-              <p className="text-[7.5px] text-gray-700 font-mono uppercase tracking-widest mt-0.5">Vanguard Alpha v6.2 · 200x Protocol</p>
+              <p className="text-[7.5px] text-[#00e676] font-mono uppercase tracking-widest mt-0.5">● Vantage Authorized IB Partner · 200x</p>
             </div>
           </div>
           <button

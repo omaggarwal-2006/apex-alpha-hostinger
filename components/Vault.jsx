@@ -168,8 +168,8 @@ export default function Vault() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4">
                 <StatCard
                   label="Total Equity"
-                  value={`$${fmt(equity)}`}
-                  color={equity >= balance ? "text-white" : "text-[#FF3131]"}
+                  value={`$${fmt(Math.max(0, equity))}`}
+                  color={Math.max(0, equity) >= balance ? "text-white" : "text-[#FF3131]"}
                   icon={Wallet}
                   accent="#f0c040"
                 />
