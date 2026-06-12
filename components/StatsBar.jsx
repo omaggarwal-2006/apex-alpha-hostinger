@@ -39,13 +39,6 @@ export default function StatsBar({ optimisticTrades = [], layout = "horizontal" 
   const { unrealizedPnL: livePnL, marginUsed } = useLivePnL(optimisticTrades);
   const { convert, symbol } = useCurrency();
 
-  useEffect(() => {
-    const lvl3Completed = localStorage.getItem("apex_lvl3_index");
-    if (lvl3Completed && Number(lvl3Completed) >= 7) {
-      setIsCertified(true);
-    }
-  }, []);
-
   // Live calculations — uses Binance WebSocket price for open trades
   const unrealizedPnl = livePnL;
   const equity = balance + unrealizedPnl;
