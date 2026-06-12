@@ -4,10 +4,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, DollarSign, Loader2 } from "lucide-react";
 import { injectFunds } from "@/services/PortfolioService";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePortfolio } from "@/hooks/useFirestore";
 import toast from "react-hot-toast";
 
 export default function ManualFundingModal({ isOpen, onClose }) {
   const { user } = useAuth();
+  const { data: portfolio } = usePortfolio();
+  const currentBalance = portfolio?.accountBalance || 0;
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,6 +18,11 @@ export default function ManualFundingModal({ isOpen, onClose }) {
     const val = parseFloat(amount);
     if (isNaN(val) || val <= 0) {
       toast.error("Enter a valid injection amount.");
+      return;
+    }
+
+    if (currentBalance + val > 1000000) {
+      toast.error(`Injection blocked: Total balance cannot exceed $1,000,000 USD (Current: $${currentBalance.toLocaleString()})`);
       return;
     }
 
@@ -82,9 +90,12 @@ export default function ManualFundingModal({ isOpen, onClose }) {
                 </div>
               </div>
 
-              <div className="bg-[#f0c040]/5 border border-[#f0c040]/10 p-4">
+              <div className="bg-[#f0c040]/5 border border-[#f0c040]/10 p-4 flex flex-col gap-2">
                 <p className="text-[9px] text-[#f0c040] font-mono leading-relaxed uppercase tracking-tighter">
                   Warning: Manual injection bypasses standard treasury protocols. Funds will be credited directly to your sovereign vault.
+                </p>
+                <p className="text-[9px] text-red-400 font-mono leading-relaxed uppercase tracking-tighter">
+                  Max Account Balance Cap: $1,000,000 USD. Current Balance: ${currentBalance.toLocaleString("en-US", { maximumFractionDigits: 2 })}
                 </p>
               </div>
 

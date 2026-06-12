@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import CursorTrailer from "@/components/CursorTrailer";
 import ClientSetup from "@/components/ClientSetup";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 
 export const metadata = {
   title: "APEX ALPHA | Sovereign Elite Tier",
@@ -24,25 +25,27 @@ export default function RootLayout({ children }) {
       </head>
       <body suppressHydrationWarning={true} className="min-h-full flex flex-col bg-[#020205] text-white selection:bg-[#f0c040]/30 overflow-hidden">
         <AuthProvider>
-          <ClientSetup />
-          <CursorTrailer />
-          <Toaster 
-            position="top-right" 
-            toastOptions={{ 
-              style: { 
-                background: 'rgba(2, 2, 5, 0.8)', 
-                color: '#f0c040', 
-                border: '1px solid rgba(240, 192, 64, 0.3)',
-                backdropFilter: 'blur(20px)',
-                fontFamily: 'JetBrains Mono, monospace',
-                borderRadius: '2px',
-                fontSize: '12px'
-              } 
-            }} 
-          />
-          <main className="flex-1 flex flex-col relative z-10">
-            {children}
-          </main>
+          <CurrencyProvider>
+            <ClientSetup />
+            <CursorTrailer />
+            <Toaster 
+              position="top-right" 
+              toastOptions={{ 
+                style: { 
+                  background: 'rgba(2, 2, 5, 0.8)', 
+                  color: '#f0c040', 
+                  border: '1px solid rgba(240, 192, 64, 0.3)',
+                  backdropFilter: 'blur(20px)',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  borderRadius: '2px',
+                  fontSize: '12px'
+                } 
+              }} 
+            />
+            <main className="flex-1 flex flex-col relative z-10">
+              {children}
+            </main>
+          </CurrencyProvider>
         </AuthProvider>
       </body>
     </html>

@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, Zap, AlertCircle, ToggleLeft, ToggleRight, X, TrendingUp, TrendingDown } from "lucide-react";
 import { playMechanicalClick } from "@/utils/sound";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const ASSETS = [
   { symbol: "Nifty 50",   name: "Nifty 50",   category: "Indices" },
@@ -40,6 +41,7 @@ function calcFees(tradeValue) {
 
 // ── Execution Modal ──────────────────────────────────────────
 function ExecutionModal({ type, selectedAsset, currentPrice, balance, onConfirm, onClose }) {
+  const { format } = useCurrency();
   const [lot, setLot]           = useState("1");
   const [leverage, setLeverage] = useState(200);
   const [brokerageEnabled, setBrokerageEnabled] = useState(true);
@@ -92,7 +94,7 @@ function ExecutionModal({ type, selectedAsset, currentPrice, balance, onConfirm,
         {/* Price strip */}
         <div className="px-6 py-3 bg-white/[0.02] flex justify-between items-center border-b border-white/5">
           <span className="text-[9px] text-gray-600 uppercase tracking-widest">Market Price</span>
-          <span className="text-sm font-black text-white">${(safePrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          <span className="text-sm font-black text-white">{format(safePrice)}</span>
         </div>
 
         <div className="px-6 py-5 flex flex-col gap-5">
@@ -164,12 +166,12 @@ function ExecutionModal({ type, selectedAsset, currentPrice, balance, onConfirm,
 
           {/* Summary */}
           <div className="text-[9px] font-mono flex flex-col gap-1.5 text-gray-500">
-            <div className="flex justify-between"><span>TRADE VALUE</span><span className="text-white">${tradeValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
-            <div className="flex justify-between"><span>MARGIN REQ.</span><span className="text-white">${margin.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
-            {fees && <div className="flex justify-between"><span>FEES</span><span className="text-red-400">-${fees.total.toFixed(2)}</span></div>}
+            <div className="flex justify-between"><span>TRADE VALUE</span><span className="text-white">{format(tradeValue)}</span></div>
+            <div className="flex justify-between"><span>MARGIN REQ.</span><span className="text-white">{format(margin)}</span></div>
+            {fees && <div className="flex justify-between"><span>FEES</span><span className="text-red-400">-{format(fees.total)}</span></div>}
             <div className="flex justify-between border-t border-white/5 pt-1.5 font-black">
               <span className="text-white uppercase">TOTAL DEDUCTION</span>
-              <span style={{ color: insufficient ? "#FF3131" : accent }}>${totalCost.toFixed(2)}</span>
+              <span style={{ color: insufficient ? "#FF3131" : accent }}>{format(totalCost)}</span>
             </div>
           </div>
 
@@ -202,6 +204,8 @@ function ExecutionModal({ type, selectedAsset, currentPrice, balance, onConfirm,
 // ── Main OrderPanel ──────────────────────────────────────────
 export default function OrderPanel({
   balance: propBalance,
+  setBalance,
+  setOptimisticTrades,
   selectedAsset,
   onAssetChange,
   slPrice,
@@ -213,13 +217,16 @@ export default function OrderPanel({
   setIsTrailing,
   onTrade,
   setActiveInsight = () => {},
+  activeTimeframe = "15m",
+  setActiveTimeframe = () => {},
 }) {
   const { user } = useAuth();
   const { data: portfolio } = usePortfolio();
+  const { format } = useCurrency();
   
   // Safety check: use hook balance if available, fallback to prop, fallback to 0
   const safeBalance = portfolio?.accountBalance ?? propBalance ?? 0;
-  const balance = safeBalance;
+  const balance = Math.min(safeBalance, 1000000); // Strict client-side cap of $1,000,000
   const displayBalance = balance;
   
   const [loading, setLoading]   = useState(false);
@@ -260,9 +267,10 @@ export default function OrderPanel({
       toast.dismiss();
       if (closed > 0) {
         const nb = balance + refund;
-        setBalance(nb);
-        localStorage.setItem("apex_local_balance", nb.toString());
-        setOptimisticTrades(updated);
+        const cappedNb = Math.min(nb, 1000000);
+        if (setBalance) setBalance(cappedNb);
+        localStorage.setItem("apex_local_balance", cappedNb.toString());
+        if (setOptimisticTrades) setOptimisticTrades(updated);
         localStorage.setItem("apex_local_trades", JSON.stringify(updated));
         toast.success(`Liquidated ${closed} position(s).`);
       } else {
@@ -310,6 +318,13 @@ export default function OrderPanel({
         status: "open",
       });
 
+      // Deduct capital locally to reflect changes instantly on the frontend
+      const deduction = margin + feesTotal;
+      const nb = Math.max(0, balance - deduction);
+      const cappedNb = Math.min(nb, 1000000);
+      if (setBalance) setBalance(cappedNb);
+      localStorage.setItem("apex_local_balance", cappedNb.toString());
+
       toast.success(`${type} executed successfully.`);
     } catch (err) {
       console.error("Trade execution failed", err);
@@ -319,7 +334,7 @@ export default function OrderPanel({
   }
 
   return (
-    <div className="p-6 h-full flex flex-col font-body relative overflow-hidden bg-[#020205]">
+    <div className="p-3 h-full flex flex-col font-body relative overflow-hidden bg-[#020205]">
       <div className="absolute top-0 right-0 w-48 h-48 bg-white opacity-[0.02] blur-[100px] rounded-full -mr-24 -mt-24 pointer-events-none" />
 
       {/* Lock overlay */}
@@ -327,13 +342,13 @@ export default function OrderPanel({
         {isLocked && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[100] bg-[#020205]/95 backdrop-blur-3xl flex flex-col items-center justify-center p-10 text-center"
+            className="absolute inset-0 z-[100] bg-[#020205]/95 backdrop-blur-3xl flex flex-col items-center justify-center p-6 text-center"
           >
-            <div className="p-6 border border-white/30 text-white mb-6"><ShieldCheck size={40} /></div>
-            <h3 className="text-white font-header font-black text-[11px] uppercase tracking-[0.4em] mb-4">Discipline Protocol Active</h3>
-            <p className="text-[10px] text-gray-600 font-mono uppercase tracking-widest mb-10 max-w-[200px] leading-loose">Daily liquidation threshold breached. Access revoked.</p>
-            <span className="text-5xl font-black font-mono text-white tracking-tighter">{formatTime(lockTime)}</span>
-            <span className="text-[8px] text-gray-700 uppercase font-header font-black tracking-[0.5em] mt-4">Cool-off Matrix</span>
+            <div className="p-4 border border-white/30 text-white mb-4"><ShieldCheck size={30} /></div>
+            <h3 className="text-white font-header font-black text-[10px] uppercase tracking-[0.3em] mb-2">Discipline Protocol Active</h3>
+            <p className="text-[9px] text-gray-600 font-mono uppercase tracking-widest mb-6 max-w-[200px] leading-loose">Daily liquidation threshold breached. Access revoked.</p>
+            <span className="text-4xl font-black font-mono text-white tracking-tighter">{formatTime(lockTime)}</span>
+            <span className="text-[8px] text-gray-700 uppercase font-header font-black tracking-[0.5em] mt-3">Cool-off Matrix</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -352,120 +367,143 @@ export default function OrderPanel({
         )}
       </AnimatePresence>
 
-      <div className={`flex-1 overflow-y-auto pr-1 -mr-1 custom-scrollbar pb-4 ${isLocked ? "blur-sm grayscale opacity-30 select-none pointer-events-none" : ""}`}>
+      <div className={`flex-1 overflow-y-auto pr-1 -mr-1 custom-scrollbar pb-2 ${isLocked ? "blur-sm grayscale opacity-30 select-none pointer-events-none" : ""}`}>
 
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-3">
-            <div className="p-2 border border-white/30 text-white"><Zap size={15} /></div>
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 border border-white/20 text-white"><Zap size={12} /></div>
             <div>
-              <h2 className="text-white font-header font-black text-[11px] uppercase tracking-[0.2em]">Execution Terminal</h2>
-              <p className="text-[8px] text-gray-700 font-mono uppercase tracking-widest mt-0.5">Vanguard Alpha v6.2 · 200x Protocol</p>
+              <h2 className="text-white font-header font-black text-[10px] uppercase tracking-[0.15em]">Execution Terminal</h2>
+              <p className="text-[7.5px] text-gray-700 font-mono uppercase tracking-widest mt-0.5">Vanguard Alpha v6.2 · 200x Protocol</p>
             </div>
           </div>
           <button
             onClick={handleCloseAll}
-            className={`text-[9px] font-header font-black uppercase px-4 py-2 border transition-all ${isPanic ? "bg-[#FF3131] text-white border-[#FF3131] animate-pulse" : "bg-black text-[#FF3131] border-[#FF3131]/30 hover:bg-[#FF3131]/10"}`}
+            className={`text-[8px] font-header font-black uppercase px-3 py-1.5 border transition-all ${isPanic ? "bg-[#FF3131] text-white border-[#FF3131] animate-pulse" : "bg-black text-[#FF3131] border-[#FF3131]/30 hover:bg-[#FF3131]/10"}`}
           >
             Liquidate All
           </button>
         </div>
 
         {/* TP/SL Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="p-4 bg-white/[0.02] border border-white/5 hover:border-[#00FF41]/30 transition-all">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-[8px] text-gray-600 uppercase font-header font-black tracking-widest">TP Target</p>
-              <p className="text-[8px] text-[#00FF41] font-mono font-black">+${estProfit}</p>
+        <div className="grid grid-cols-2 gap-3 mb-2.5">
+          <div className="p-2.5 bg-white/[0.02] border border-white/5 hover:border-[#00FF41]/30 transition-all">
+            <div className="flex justify-between items-center mb-1">
+              <p className="text-[7.5px] text-gray-600 uppercase font-header font-black tracking-widest">TP Target</p>
+              <p className="text-[7.5px] text-[#00FF41] font-mono font-black">+{format(parseFloat(estProfit))}</p>
             </div>
-            <p className="text-lg text-white font-mono font-black tracking-tighter">${tpPrice || "0.00"}</p>
+            <p className="text-sm text-white font-mono font-black tracking-tighter">{tpPrice ? format(parseFloat(tpPrice)) : format(0)}</p>
           </div>
-          <div className="p-4 bg-white/[0.02] border border-white/5 hover:border-[#FF3131]/30 transition-all">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-[8px] text-gray-600 uppercase font-header font-black tracking-widest">SL Floor</p>
-              <p className="text-[8px] text-[#FF3131] font-mono font-black">-${estLoss}</p>
+          <div className="p-2.5 bg-white/[0.02] border border-white/5 hover:border-[#FF3131]/30 transition-all">
+            <div className="flex justify-between items-center mb-1">
+              <p className="text-[7.5px] text-gray-600 uppercase font-header font-black tracking-widest">SL Floor</p>
+              <p className="text-[7.5px] text-[#FF3131] font-mono font-black">-{format(parseFloat(estLoss))}</p>
             </div>
-            <p className="text-lg text-white font-mono font-black tracking-tighter">${slPrice || "0.00"}</p>
+            <p className="text-sm text-white font-mono font-black tracking-tighter">{slPrice ? format(parseFloat(slPrice)) : format(0)}</p>
           </div>
         </div>
 
-        {/* Asset Selector */}
-        <div className="mb-6">
-          <label className="text-[9px] text-gray-700 uppercase font-header font-black tracking-[0.2em] block mb-3">Asset Matrix</label>
-          <div className="relative">
-            <select
-              value={isPreset ? selectedAsset : "custom"}
-              onChange={e => onAssetChange(e.target.value)}
-              className="w-full p-4 bg-black/80 border border-white/10 focus:outline-none focus:border-white/30 text-white text-[11px] font-header font-black tracking-[0.1em] appearance-none cursor-pointer uppercase transition-all"
-            >
-              {categories.map(cat => (
-                <optgroup key={cat} label={cat.toUpperCase()} className="bg-[#020205] text-white">
-                  {ASSETS.filter(a => a.category === cat).map(asset => (
-                    <option key={asset.symbol} value={asset.symbol} className="text-white">{asset.name}</option>
-                  ))}
-                </optgroup>
-              ))}
-              {!isPreset && <option value="custom">{selectedAsset}</option>}
-            </select>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white">
-              <ShieldCheck size={14} />
+        {/* Asset Selector & Timeframe Selector (Side-by-Side) */}
+        <div className="grid grid-cols-2 gap-3 mb-2.5">
+          <div>
+            <label className="text-[8px] text-gray-700 uppercase font-header font-black tracking-[0.2em] block mb-1">Asset Matrix</label>
+            <div className="relative">
+              <select
+                value={isPreset ? selectedAsset : "custom"}
+                onChange={e => onAssetChange(e.target.value)}
+                className="w-full p-2.5 bg-black/80 border border-white/10 focus:outline-none focus:border-white/30 text-white text-[10px] font-header font-black tracking-[0.1em] appearance-none cursor-pointer uppercase transition-all"
+              >
+                {categories.map(cat => (
+                  <optgroup key={cat} label={cat.toUpperCase()} className="bg-[#020205] text-white">
+                    {ASSETS.filter(a => a.category === cat).map(asset => (
+                      <option key={asset.symbol} value={asset.symbol} className="text-white">{asset.name}</option>
+                    ))}
+                  </optgroup>
+                ))}
+                {!isPreset && <option value="custom">{selectedAsset}</option>}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/50">
+                <ShieldCheck size={12} />
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <label className="text-[8px] text-gray-700 uppercase font-header font-black tracking-[0.2em] block mb-1">Interval Metric</label>
+            <div className="relative">
+              <select
+                value={activeTimeframe}
+                onChange={e => setActiveTimeframe(e.target.value)}
+                className="w-full p-2.5 bg-black/80 border border-white/10 focus:outline-none focus:border-white/30 text-white text-[10px] font-header font-black tracking-[0.1em] appearance-none cursor-pointer uppercase transition-all"
+              >
+                <option value="1m">1 MINUTE (1m)</option>
+                <option value="5m">5 MINUTES (5m)</option>
+                <option value="15m">15 MINUTES (15m)</option>
+                <option value="1h">1 HOUR (1h)</option>
+                <option value="4h">4 HOURS (4h)</option>
+                <option value="1D">1 DAY (1D)</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#D4AF37]/70">
+                <Zap size={12} className="animate-pulse" />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Balance Display */}
-        <div className="mb-6 p-4 bg-white/[0.02] border border-white/5">
+        <div className="mb-2.5 p-2.5 bg-white/[0.02] border border-white/5">
           <div className="flex justify-between items-center">
-            <span className="text-[9px] text-gray-600 uppercase font-header font-black tracking-widest">Available Capital</span>
-            <span className="text-xl text-white font-mono font-black">
-              ${displayBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <span className="text-[8px] text-gray-600 uppercase font-header font-black tracking-widest">Available Capital</span>
+            <span className="text-base text-white font-mono font-black">
+              {format(displayBalance)}
             </span>
           </div>
-          <div className="mt-2 h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-          <p className="text-[8px] text-gray-700 uppercase tracking-widest mt-2 font-mono">
-            Leverage up to 200x · Max notional: ${(displayBalance * 200).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+          <div className="mt-1.5 h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <p className="text-[7.5px] text-gray-700 uppercase tracking-widest mt-1.5 font-mono">
+            Leverage up to 200x · Max notional: {format(displayBalance * 200)}
           </p>
         </div>
 
         {/* Trailing Stop */}
-        <div className={`mb-4 p-4 border transition-all ${isTrailing ? "border-white/20 bg-white/5" : "border-white/5 bg-white/[0.01]"}`}>
+        <div className={`mb-2 p-2.5 border transition-all ${isTrailing ? "border-white/20 bg-white/5" : "border-white/5 bg-white/[0.01]"}`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-1.5 h-1.5 rounded-full ${isTrailing ? "bg-white shadow-[0_0_8px_#fff] animate-pulse" : "bg-gray-800"}`} />
-              <span className="text-[10px] font-header font-black uppercase tracking-[0.2em] text-white">Trailing Stop</span>
+            <div className="flex items-center gap-2">
+              <div className={`w-1 h-1 rounded-full ${isTrailing ? "bg-white shadow-[0_0_8px_#fff] animate-pulse" : "bg-gray-800"}`} />
+              <span className="text-[9px] font-header font-black uppercase tracking-[0.2em] text-white">Trailing Stop</span>
             </div>
             <button onClick={() => setIsTrailing(prev => !prev)}>
               {isTrailing
-                ? <ToggleRight size={24} className="text-white" />
-                : <ToggleLeft size={24} className="text-gray-800 hover:text-gray-600" />}
+                ? <ToggleRight size={20} className="text-white" />
+                : <ToggleLeft size={20} className="text-gray-800 hover:text-gray-600" />}
             </button>
           </div>
           {isTrailing && (
-            <p className="text-[9px] text-gray-500 font-mono uppercase tracking-widest mt-2">Dynamic profit capture active · 1% offset</p>
+            <p className="text-[8px] text-gray-500 font-mono uppercase tracking-widest mt-1.5">Dynamic profit capture active · 1% offset</p>
           )}
         </div>
       </div>
 
       {/* Primary Buy / Sell Buttons */}
-      <div className="pt-6 border-t border-white/5 bg-[#020205]">
-        <div className="flex justify-between items-center px-1 mb-4">
-          <span className="text-[9px] text-gray-600 font-header font-black uppercase tracking-widest">Market Price</span>
-          <span className="text-[13px] text-white font-mono font-black">
-            ${safePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+      <div className="pt-2 border-t border-white/5 bg-[#020205] flex-shrink-0">
+        <div className="flex justify-between items-center px-1 mb-2">
+          <span className="text-[8px] text-gray-600 font-header font-black uppercase tracking-widest">Market Price</span>
+          <span className="text-[11px] text-white font-mono font-black">
+            {format(safePrice)}
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <motion.button
             whileTap={{ scale: 0.97 }}
             disabled={loading || isLocked}
             onClick={() => { setActiveInsight("BULLISH_HOVER"); setModal("BUY"); }}
             onMouseLeave={() => setActiveInsight("IDLE")}
-            className="relative overflow-hidden disabled:opacity-30 font-header font-black tracking-[0.2em] uppercase transition-all py-5 flex flex-col items-center justify-center gap-1"
-            style={{ background: "#00FF41", color: "#000", boxShadow: "0 10px 30px rgba(0,255,65,0.2)" }}
+            className="relative overflow-hidden disabled:opacity-30 font-header font-black tracking-[0.2em] uppercase transition-all py-3.5 flex flex-col items-center justify-center gap-0.5"
+            style={{ background: "#00FF41", color: "#000", boxShadow: "0 5px 15px rgba(0,255,65,0.15)" }}
           >
-            <TrendingUp size={16} />
-            <span className="text-[13px]">BUY</span>
-            <span className="text-[8px] opacity-60">Long · Up to 200x</span>
+            <TrendingUp size={14} />
+            <span className="text-[11px]">BUY</span>
+            <span className="text-[7.5px] opacity-60">Long · 200x Max</span>
           </motion.button>
 
           <motion.button
@@ -473,19 +511,19 @@ export default function OrderPanel({
             disabled={loading || isLocked}
             onClick={() => { setActiveInsight("BEARISH_HOVER"); setModal("SELL"); }}
             onMouseLeave={() => setActiveInsight("IDLE")}
-            className="relative overflow-hidden disabled:opacity-30 font-header font-black tracking-[0.2em] uppercase transition-all py-5 flex flex-col items-center justify-center gap-1"
-            style={{ background: "#FF3131", color: "#fff", boxShadow: "0 10px 30px rgba(255,49,49,0.2)" }}
+            className="relative overflow-hidden disabled:opacity-30 font-header font-black tracking-[0.2em] uppercase transition-all py-3.5 flex flex-col items-center justify-center gap-0.5"
+            style={{ background: "#FF3131", color: "#fff", boxShadow: "0 5px 15px rgba(255,49,49,0.15)" }}
           >
-            <TrendingDown size={16} />
-            <span className="text-[13px]">SELL</span>
-            <span className="text-[8px] opacity-60">Short · Up to 200x</span>
+            <TrendingDown size={14} />
+            <span className="text-[11px]">SELL</span>
+            <span className="text-[7.5px] opacity-60">Short · 200x Max</span>
           </motion.button>
         </div>
 
-        <div className="flex items-center justify-center gap-4 opacity-20 mt-4">
-          <div className="h-px w-8 bg-gray-800" />
-          <span className="text-[8px] uppercase tracking-[0.6em] font-header font-black text-white">Sovereign Elite Tier</span>
-          <div className="h-px w-8 bg-gray-800" />
+        <div className="flex items-center justify-center gap-3 opacity-20 mt-3">
+          <div className="h-px w-6 bg-gray-800" />
+          <span className="text-[7px] uppercase tracking-[0.6em] font-header font-black text-white">Sovereign Elite Tier</span>
+          <div className="h-px w-6 bg-gray-800" />
         </div>
       </div>
     </div>

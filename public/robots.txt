@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://apexalpha-xi.vercel.app/sitemap.xml
+Sitemap: https://apexalpha.io/sitemap.xml

@@ -2,19 +2,7 @@
 import { useEffect, useState } from "react";
 import { Globe2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const HEADLINES = [
-  { id: 1, text: "FED CHAIR POWELL: INFLATION REMAINS ELEVATED, RATE PATH DEPENDENT ON DATA", source: "REUTERS", impact: "HIGH", sentiment: "BEARISH" },
-  { id: 2, text: "SEC APPROVES SPOT ETHEREUM ETF — TRADING TO BEGIN NEXT WEEK", source: "BLOOMBERG", impact: "CRITICAL", sentiment: "BULLISH" },
-  { id: 3, text: "JAPAN BOJ INTERVENES IN FX MARKET TO SUPPORT WEAK YEN AT ¥158", source: "WSJ", impact: "HIGH", sentiment: "BEARISH" },
-  { id: 4, text: "US NON-FARM PAYROLLS BEAT EXPECTATIONS: 275K VS 200K EST — DOLLAR SPIKES", source: "CNBC", impact: "HIGH", sentiment: "BULLISH" },
-  { id: 5, text: "OPEC+ EXTENDS VOLUNTARY OIL OUTPUT CUTS THROUGH Q3 2025", source: "FT", impact: "MEDIUM", sentiment: "BULLISH" },
-  { id: 6, text: "CHINA PMI MANUFACTURING FALLS TO 47.8, WEAKEST IN 18 MONTHS", source: "XINHUA", impact: "HIGH", sentiment: "BEARISH" },
-  { id: 7, text: "BITCOIN BREAKS $100K AS INSTITUTIONAL INFLOWS HIT RECORD $2.4B IN ONE WEEK", source: "COINDESK", impact: "CRITICAL", sentiment: "BULLISH" },
-  { id: 8, text: "RBI HOLDS REPO RATE AT 6.5%, MAINTAINS WITHDRAWAL OF ACCOMMODATION STANCE", source: "MINT", impact: "MEDIUM", sentiment: "NEUTRAL" },
-  { id: 9, text: "US 10Y TREASURY YIELD SURGES TO 4.8% — EQUITY MARKETS PRESSURED", source: "BARCLAYS", impact: "HIGH", sentiment: "BEARISH" },
-  { id: 10, text: "NIFTY 50 HITS ALL-TIME HIGH 25,400 ON FII INFLOWS AND STRONG CORPORATE EARNINGS", source: "ECONOMIC TIMES", impact: "HIGH", sentiment: "BULLISH" },
-];
+import axios from "axios";
 
 const SENTIMENT_CONFIG = {
   BULLISH: { color: "#00FF41", icon: TrendingUp, label: "BULL" },
@@ -29,21 +17,37 @@ const IMPACT_DOT = {
 };
 
 export default function MacroTicker() {
-  const [tickerItems, setTickerItems] = useState([]);
+  const [headlines, setHeadlines] = useState([]);
   const [flashId, setFlashId] = useState(null);
 
   useEffect(() => {
-    setTickerItems([...HEADLINES, ...HEADLINES]); // double for seamless loop
+    const fetchHeadlines = async () => {
+      try {
+        const res = await axios.get("/api/market/headlines");
+        const list = Array.isArray(res.data) ? res.data : [];
+        setHeadlines([...list, ...list]); // double for marquee loop
+      } catch (err) {
+        console.error("Headlines fetch failed", err);
+      }
+    };
+    
+    fetchHeadlines();
+    const fetchInterval = setInterval(fetchHeadlines, 30000);
 
     // Occasionally "break" in a new headline (simulate live feed)
     const breakingInterval = setInterval(() => {
-      const randomHeadline = HEADLINES[Math.floor(Math.random() * HEADLINES.length)];
-      setFlashId(randomHeadline.id);
-      setTimeout(() => setFlashId(null), 3000);
+      if (headlines.length > 0) {
+        const randomHeadline = headlines[Math.floor(Math.random() * (headlines.length / 2))];
+        setFlashId(randomHeadline.id);
+        setTimeout(() => setFlashId(null), 3000);
+      }
     }, 20000);
 
-    return () => clearInterval(breakingInterval);
-  }, []);
+    return () => {
+      clearInterval(fetchInterval);
+      clearInterval(breakingInterval);
+    };
+  }, [headlines.length]);
 
   return (
     <div className="w-full h-8 bg-[#080808] border-b border-white/5 flex items-center overflow-hidden font-mono relative z-50">
@@ -72,7 +76,7 @@ export default function MacroTicker() {
       {/* Scrolling ticker */}
       <div className="flex-1 overflow-hidden relative h-full">
         <div className="absolute inset-0 flex items-center animate-marquee whitespace-nowrap">
-          {tickerItems.map((item, i) => {
+          {headlines.map((item, i) => {
             const cfg = SENTIMENT_CONFIG[item.sentiment] || SENTIMENT_CONFIG.NEUTRAL;
             const Icon = cfg.icon;
             return (

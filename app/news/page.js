@@ -4,94 +4,30 @@ import Navbar from "@/components/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
 import { Newspaper, TrendingUp, TrendingDown, Eye, Activity, Award, CheckCircle2, ChevronRight, Filter, Flame, Globe } from "lucide-react";
 import toast from "react-hot-toast";
-
-const MOCK_NEWS_STORIES = [
-  {
-    id: 1,
-    title: "RELIANCE INDUSTRIES: Strategic Retail Expansion Drives Massive 3.5% Surge",
-    category: "STOCKS",
-    time: "2 mins ago",
-    impact: "HIGHLY BULLISH",
-    impactPercent: "+3.5%",
-    color: "text-emerald-500",
-    bgColor: "bg-emerald-500/10 border-emerald-500/20",
-    source: "NSE Pulse",
-    summary: "Reliance Industries announced a series of strategic retail partnerships across major metropolitan nodes. Institutional buying limit orders clustered heavily around the $2,420 coordinate, sparking a high-velocity momentum breakout.",
-    tacticalTip: "Look for price to test the newly established support at $2,440. Whales are stacking asks at $2,500."
-  },
-  {
-    id: 2,
-    title: "NIFTY 50: Breaches Historical 22,500 Resistance on High-Volume Option Sweeps",
-    category: "STOCKS",
-    time: "15 mins ago",
-    impact: "EXTREME BULLISH",
-    impactPercent: "+1.8%",
-    color: "text-emerald-500",
-    bgColor: "bg-emerald-500/10 border-emerald-500/20",
-    source: "Bloomberg Alpha",
-    summary: "Nifty 50 breached its critical psychological resistance wall at 22,500. Option chain telemetry indicates a major short-covering rally as retail call writers are forced to liquidate positions.",
-    tacticalTip: "Avoid shorting the momentum. A retest of 22,480 is an optimal long continuation entry floor."
-  },
-  {
-    id: 3,
-    title: "CPI INFLATION: Cools Down to 2.8% Triggering Global Equity Buying Wave",
-    category: "MACRO",
-    time: "32 mins ago",
-    impact: "BULLISH BREAKOUT",
-    impactPercent: "+2.1%",
-    color: "text-cyan-500",
-    bgColor: "bg-cyan-500/10 border-cyan-500/20",
-    source: "Reuters Desk",
-    summary: "Global inflation cooling faster than consensus expectations has led to aggressive speculation of rate cuts. Whales are shifting capital from defensive bonds back into high-growth equities.",
-    tacticalTip: "A high-beta stocks rally is underway. Leverage can be amplified moderately as risk floors stabilize."
-  },
-  {
-    id: 4,
-    title: "TATA MOTORS: Production Bottlenecks Lead to Short-Term Selling Pressure",
-    category: "STOCKS",
-    time: "1 hour ago",
-    impact: "MODERATE BEARISH",
-    impactPercent: "-2.4%",
-    color: "text-red-500",
-    bgColor: "bg-red-500/10 border-red-500/20",
-    source: "NSE Pulse",
-    summary: "Temporary supply chain constraints inside the microchip division have stalled delivery targets, triggering high-frequency algo sells. However, long-term buy orders remain active near the $910 floor.",
-    tacticalTip: "Wait for the sell volume to dissipate near $905 before evaluating fresh buy triggers."
-  },
-  {
-    id: 5,
-    title: "BITCOIN: Whales Sweep Active Sell Walls at $64,000 as Halving Looming",
-    category: "CRYPTO",
-    time: "2 hours ago",
-    impact: "HIGH VOLATILITY",
-    impactPercent: "+4.8%",
-    color: "text-emerald-500",
-    bgColor: "bg-emerald-500/10 border-emerald-500/20",
-    source: "Sovereign Feed",
-    summary: "Over $120M in short liquidations cascade as Bitcoin price rockets past $64,200. Order book analytics show massive spot buying blocks from spot ETF custodians.",
-    tacticalTip: "Keep tight stops on short leverages. Margin squeeze levels are highly sensitive at $65k."
-  },
-  {
-    id: 6,
-    title: "HDFC BANK: Foreign Institutional Investors (FII) Absorb Heavy Sell blocks",
-    category: "STOCKS",
-    time: "3 hours ago",
-    impact: "ACCUMULATION PHASE",
-    impactPercent: "+0.8%",
-    color: "text-[#FFBF00]",
-    bgColor: "bg-[#FFBF00]/10 border-[#FFBF00]/20",
-    source: "Bloomberg Alpha",
-    summary: "FII blocks have absorbed large selling pressure from domestic retail accounts. FII accumulation implies a strong conviction floor is being established for a medium-term bull rally.",
-    tacticalTip: "Accumulate along the $1,420 - $1,440 channel to coordinate with institutional positioning."
-  }
-];
+import axios from "axios";
 
 export default function NewsPage() {
+  const [stories, setStories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedStory, setSelectedStory] = useState(null);
   const [activeTab, setActiveTab] = useState("ALL STORIES");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredStories = MOCK_NEWS_STORIES.filter(s => {
+  useEffect(() => {
+    const fetchStories = async () => {
+      try {
+        const res = await axios.get("/api/market/news");
+        setStories(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Failed to fetch Gemini news", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStories();
+  }, []);
+
+  const filteredStories = stories.filter(s => {
     const matchesTab = activeTab === "ALL STORIES" || s.category === activeTab;
     const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           s.summary.toLowerCase().includes(searchQuery.toLowerCase());
@@ -187,53 +123,62 @@ export default function NewsPage() {
 
           {/* Stories List */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <AnimatePresence mode="wait">
-              {filteredStories.map((story) => (
-                <motion.div
-                  key={story.id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.25 }}
-                  onClick={() => setSelectedStory(story)}
-                  className="glass-panel border-white/10 bg-[#030307]/90 hover:border-[#FFBF00]/30 transition-all cursor-pointer p-5 flex flex-col gap-3 group relative overflow-hidden"
-                >
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-[#FFBF00]/2 opacity-0 group-hover:opacity-100 transition-opacity blur-3xl pointer-events-none" />
-                  
-                  {/* Category & Impact Row */}
-                  <div className="flex justify-between items-center text-[8px] font-bold">
-                    <span className="text-[#FFBF00] bg-[#FFBF00]/5 border border-[#FFBF00]/20 px-2 py-0.5 uppercase tracking-widest font-black rounded-sm">
-                      {story.category}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-gray-500 font-mono uppercase">{story.time}</span>
-                      <span className="h-1 w-1 rounded-full bg-white/20" />
-                      <span className={`px-2 py-0.5 uppercase border ${story.color} ${story.bgColor}`}>
-                        {story.impact} ({story.impactPercent})
+            {loading ? (
+              <div className="col-span-2 py-20 flex flex-col items-center justify-center gap-4">
+                <div className="h-8 w-8 rounded-full border-2 border-[#FFBF00]/30 border-t-[#FFBF00] animate-spin" />
+                <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Syncing Gemini Intelligence Desk...</span>
+              </div>
+            ) : filteredStories.length === 0 ? (
+              <div className="col-span-2 py-20 text-center text-gray-500 text-xs">No news stories found.</div>
+            ) : (
+              <AnimatePresence mode="wait">
+                {filteredStories.map((story) => (
+                  <motion.div
+                    key={story.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.25 }}
+                    onClick={() => setSelectedStory(story)}
+                    className="glass-panel border-white/10 bg-[#030307]/90 hover:border-[#FFBF00]/30 transition-all cursor-pointer p-5 flex flex-col gap-3 group relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#FFBF00]/2 opacity-0 group-hover:opacity-100 transition-opacity blur-3xl pointer-events-none" />
+                    
+                    {/* Category & Impact Row */}
+                    <div className="flex justify-between items-center text-[8px] font-bold">
+                      <span className="text-[#FFBF00] bg-[#FFBF00]/5 border border-[#FFBF00]/20 px-2 py-0.5 uppercase tracking-widest font-black rounded-sm">
+                        {story.category}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-gray-500 font-mono uppercase">{story.time}</span>
+                        <span className="h-1 w-1 rounded-full bg-white/20" />
+                        <span className={`px-2 py-0.5 uppercase border ${story.color} ${story.bgColor}`}>
+                          {story.impact} ({story.impactPercent})
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Headline Title */}
+                    <h4 className="text-[12px] font-header font-black text-white leading-relaxed group-hover:text-[#FFBF00] transition-colors mt-1 uppercase">
+                      {story.title}
+                    </h4>
+
+                    {/* Short Summary */}
+                    <p className="text-[10px] text-gray-400 leading-relaxed font-mono line-clamp-2">
+                      {story.summary}
+                    </p>
+
+                    {/* Card Footer */}
+                    <div className="border-t border-white/5 pt-3 mt-1 flex justify-between items-center text-[8px] font-mono uppercase text-gray-500">
+                      <span className="font-bold">FEED SOURCE: {story.source}</span>
+                      <span className="text-[#FFBF00] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                        DEEP ANALYSIS <ChevronRight size={10} />
                       </span>
                     </div>
-                  </div>
-
-                  {/* Headline Title */}
-                  <h4 className="text-[12px] font-header font-black text-white leading-relaxed group-hover:text-[#FFBF00] transition-colors mt-1 uppercase">
-                    {story.title}
-                  </h4>
-
-                  {/* Short Summary */}
-                  <p className="text-[10px] text-gray-400 leading-relaxed font-mono line-clamp-2">
-                    {story.summary}
-                  </p>
-
-                  {/* Card Footer */}
-                  <div className="border-t border-white/5 pt-3 mt-1 flex justify-between items-center text-[8px] font-mono uppercase text-gray-500">
-                    <span className="font-bold">FEED SOURCE: {story.source}</span>
-                    <span className="text-[#FFBF00] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                      DEEP ANALYSIS <ChevronRight size={10} />
-                    </span>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            )}
           </div>
         </div>
 

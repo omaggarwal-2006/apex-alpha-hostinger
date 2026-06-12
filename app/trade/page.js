@@ -25,6 +25,9 @@ import { usePortfolio } from "@/hooks/useFirestore";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
 import axios from "axios";
+import CurrencySelector from "@/components/CurrencySelector";
+import AlphaSentinel from "@/components/AlphaSentinel";
+import NewsFeed from "@/components/NewsFeed";
 
 export default function TradePage() {
   const { user } = useAuth();
@@ -38,8 +41,24 @@ export default function TradePage() {
   const [slPrice, setSlPrice] = useState(0);
   const [tpPrice, setTpPrice] = useState(0);
   
-  const balance = portfolio?.accountBalance || 0;
-  const optimisticTrades = openTrades; // Map to legacy naming for compatibility
+  const [balance, setBalance] = useState(0);
+  const [optimisticTrades, setOptimisticTrades] = useState([]);
+  const [rightActiveTab, setRightActiveTab] = useState("polymarket");
+  const [activeTimeframe, setActiveTimeframe] = useState("15m");
+
+  // Sync balance with Firestore portfolio
+  useEffect(() => {
+    if (portfolio?.accountBalance !== undefined) {
+      setBalance(Math.min(portfolio.accountBalance, 1000000));
+    }
+  }, [portfolio?.accountBalance]);
+
+  // Sync openTrades with optimisticTrades
+  useEffect(() => {
+    if (openTrades) {
+      setOptimisticTrades(openTrades);
+    }
+  }, [openTrades]);
   
   const [currentPrice, setCurrentPrice] = useState(0);
   const [marketAnalytics, setMarketAnalytics] = useState(null);
@@ -143,10 +162,10 @@ export default function TradePage() {
 
     toast?.success?.(`Position closed! Yield PnL: $${localPnl.toFixed(2)}`);
 
-    if (!auth.currentUser) return;
+    if (!user) return;
 
     try {
-      const token = await auth.currentUser.getIdToken();
+      const token = await user.getIdToken();
       await axios.post(`/api/trade/close/${target.id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -188,8 +207,12 @@ export default function TradePage() {
       case "splitoff": setSplitMode(null); break;
       case "theme": document.documentElement.classList.toggle("dark"); break;
       case "reset":
-        axios.post("/api/user/reset", {}, { headers: { Authorization: `Bearer ${auth.currentUser?.accessToken}` } })
-          .then(r => setBalance(r.data.balance));
+        if (user) {
+          user.getIdToken().then(token => {
+            axios.post("/api/user/reset", {}, { headers: { Authorization: `Bearer ${token}` } })
+              .then(r => setBalance(Math.min(r.data.balance, 1000000)));
+          });
+        }
         break;
       case "selectAsset": handleAssetChange(payload); break;
     }
@@ -241,30 +264,14 @@ export default function TradePage() {
       initial="hidden"
       animate="visible"
       variants={terminalVariants}
-      className={`min-h-screen flex text-white overflow-hidden bg-[#020205] selection:bg-[#f0c040]/30 font-body ${isVibrating ? 'haptic-vibration' : ''}`}
+      className={`h-screen w-screen flex flex-col text-white overflow-hidden bg-[#020205] selection:bg-[#f0c040]/30 font-body ${isVibrating ? 'haptic-vibration' : ''}`}
     >
-      {/* COLUMN 1: WATCHLIST */}
-      <AnimatePresence>
-        {!zenMode && (
-          <motion.div
-            variants={sidebarVariants}
-            className="hidden xl:flex flex-col w-[320px] border-r border-white/5 bg-[#020205]/80 overflow-y-auto"
-          >
-            <div className="flex-1 min-h-[400px]">
-              <Watchlist onAssetSelect={handleAssetChange} onAction={(type, symbol) => { triggerHaptic(); handleAssetChange(symbol); }} />
-            </div>
-
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* UNIFIED HEADER BAR */}
-        {!zenMode && (
+      {/* Row 1: Unified Header & Tickers (Global across the screen) */}
+      {!zenMode && (
+        <div className="flex-shrink-0 flex flex-col z-50">
           <motion.div
             variants={navVariants}
-            className="px-6 py-4 border-b border-white/5 flex items-center justify-between gap-12 bg-black/60 backdrop-blur-2xl z-50"
+            className="px-6 py-3 border-b border-white/5 flex items-center justify-between gap-12 bg-black/60 backdrop-blur-2xl"
           >
             <div className="flex-shrink-0">
               <Navbar />
@@ -275,47 +282,93 @@ export default function TradePage() {
             </div>
 
             <div className="flex items-center gap-6 flex-shrink-0">
-              <StatsBar optimisticTrades={optimisticTrades} />
+              <CurrencySelector />
             </div>
           </motion.div>
-        )}
 
-        <motion.div
-          variants={mainVariants}
-          className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-[#020205]/50 relative"
-        >
-          {/* Scanline overlay for trade floor */}
-          <div className="absolute inset-0 pointer-events-none opacity-[0.03] scanlines" />
+          <div className="flex flex-col border-b border-white/5 bg-[#080808]/90 backdrop-blur-md shadow-xl">
+            <TopBarTicker />
+            <MacroTicker />
+          </div>
+        </div>
+      )}
 
-          <div className="flex flex-col gap-8 max-w-[1800px] mx-auto w-full relative z-10">
+      {/* Row 2: Workspace (Viewport height minus header) */}
+      <div className="flex-1 w-full flex flex-row overflow-hidden relative">
+        {/* Scanline overlay for trade floor */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03] scanlines z-10" />
 
-            {/* Contextual Market Pulse (Sovereign Top Ticker) */}
-            {!zenMode && (
-              <div className="flex flex-col border-b border-white/5 bg-black/40 backdrop-blur-xl sticky top-0 z-[100] shadow-2xl">
-                <TopBarTicker />
-                <MacroTicker />
-              </div>
-            )}
+        {/* COLUMN 1: WATCHLIST (Market Watch) - Dominant left sidebar */}
+        <AnimatePresence>
+          {!zenMode && (
+            <motion.div
+              variants={sidebarVariants}
+              className="flex-shrink-0 w-[320px] h-full border-r border-white/5 bg-[#020205]/80 overflow-hidden flex flex-col"
+            >
+              <Watchlist
+                onAssetSelect={handleAssetChange}
+                onAction={(type, symbol) => { triggerHaptic(); handleAssetChange(symbol); }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start w-full">
-              {/* TOP ROW: CHART & EXECUTION */}
-              <div className="lg:col-span-8 glass-panel border-white/10 overflow-hidden shadow-2xl h-[740px]">
-                <Chart
-                  selectedAsset={selectedAsset}
-                  onAssetSearch={handleAssetChange}
-                  slPrice={slPrice}
-                  tpPrice={tpPrice}
-                  setSlPrice={setSlPrice}
-                  setTpPrice={setTpPrice}
-                  splitMode={splitMode}
-                  onSplitChange={setSplitMode}
-                  setActiveInsight={setActiveInsight}
-                />
-              </div>
+        {/* COLUMN 2: CENTRAL OPERATIONS MATRIX (Chart + Health Stats + Positions) */}
+        <div className="flex-1 h-full flex flex-col gap-3 p-3 overflow-hidden">
+          {/* Top Panel: Interactive Chart */}
+          <div className="flex-[0.52] min-h-[300px] glass-panel border-white/10 overflow-hidden shadow-2xl relative">
+            <Chart
+              selectedAsset={selectedAsset}
+              onAssetSearch={handleAssetChange}
+              slPrice={slPrice}
+              tpPrice={tpPrice}
+              setSlPrice={setSlPrice}
+              setTpPrice={setTpPrice}
+              splitMode={splitMode}
+              onSplitChange={setSplitMode}
+              setActiveInsight={setActiveInsight}
+              activeTimeframe={activeTimeframe}
+              setActiveTimeframe={setActiveTimeframe}
+            />
+          </div>
 
-              <div className="lg:col-span-4 glass-panel border-white/10 shadow-2xl h-[740px] overflow-y-auto custom-scrollbar">
+          {/* Middle Panel: Central Account Health Stats Grid */}
+          {!zenMode && (
+            <div className="h-[110px] w-full flex-shrink-0 flex items-center justify-center">
+              <StatsBar optimisticTrades={optimisticTrades} />
+            </div>
+          )}
+
+          {/* Bottom Panel: Active Positions Engine */}
+          <div className="flex-grow overflow-hidden glass-panel border-white/10 p-3 shadow-2xl flex flex-col">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white mb-2 border-b border-white/5 pb-1.5 flex-shrink-0">
+              Active Positions
+            </h3>
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <PositionEngine 
+                trades={optimisticTrades} 
+                currentPrice={currentPrice} 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* COLUMN 3: TERMINAL & INTEL DESK (Order panel + News feed + AI Sentinel tabs) */}
+        <AnimatePresence>
+          {!zenMode && (
+            <motion.div
+              initial={{ x: 300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 300, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 100, damping: 25 }}
+              className="flex-shrink-0 w-[380px] h-full flex flex-col gap-3 p-3 pl-0 overflow-hidden"
+            >
+              {/* Top Panel: Execution Terminal */}
+              <div className="flex-[0.5] overflow-hidden glass-panel border-white/10 shadow-2xl">
                 <OrderPanel
                   balance={balance}
+                  setBalance={setBalance}
+                  setOptimisticTrades={setOptimisticTrades}
                   selectedAsset={selectedAsset}
                   onAssetChange={handleAssetChange}
                   slPrice={slPrice}
@@ -329,26 +382,55 @@ export default function TradePage() {
                   isTrailing={isTrailing}
                   setIsTrailing={setIsTrailing}
                   onTrade={triggerHaptic}
+                  activeTimeframe={activeTimeframe}
+                  setActiveTimeframe={setActiveTimeframe}
                 />
               </div>
 
-              {/* BOTTOM ROW: ACTIVE POSITIONS & POLYMARKET */}
-              <div className="lg:col-span-8 glass-panel border-white/10 h-[450px] shadow-2xl overflow-hidden p-4">
-                <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-white mb-4 border-b border-white/5 pb-2">Active Positions</h3>
-                <PositionEngine 
-                  trades={optimisticTrades} 
-                  currentPrice={currentPrice} 
-                />
+              {/* Middle Panel: Anchor News Feed (Stuck, scrollable internally) */}
+              <div className="flex-[0.25] min-h-[140px] overflow-hidden shadow-2xl">
+                <NewsFeed />
               </div>
 
-              <div className="lg:col-span-4 h-[450px] shadow-2xl overflow-hidden">
-                <PolymarketPanel />
+              {/* Bottom Panel: Intel Tabs (Polymarket / AI Sentinel) */}
+              <div className="flex-[0.25] min-h-[140px] shadow-2xl overflow-hidden glass-panel border-white/10 flex flex-col">
+                <div className="flex border-b border-white/5 bg-[#04040A] flex-shrink-0">
+                  <button
+                    onClick={() => setRightActiveTab("polymarket")}
+                    className={`flex-1 py-1.5 text-[8.5px] font-black uppercase tracking-widest transition-all ${
+                      rightActiveTab === "polymarket"
+                        ? "bg-white/5 text-[#D4AF37] border-b border-[#D4AF37]"
+                        : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Prediction Markets
+                  </button>
+                  <button
+                    onClick={() => setRightActiveTab("sentinel")}
+                    className={`flex-1 py-1.5 text-[8.5px] font-black uppercase tracking-widest transition-all ${
+                      rightActiveTab === "sentinel"
+                        ? "bg-white/5 text-[#D4AF37] border-b border-[#D4AF37]"
+                        : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Alpha AI Sentinel
+                  </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                  {rightActiveTab === "polymarket" ? (
+                    <PolymarketPanel />
+                  ) : (
+                    <AlphaSentinel activeInsight={activeInsight} selectedAsset={selectedAsset} />
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
-        </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
+      {/* Zen Mode Escape Alert */}
       <AnimatePresence>
         {zenMode && (
           <motion.div

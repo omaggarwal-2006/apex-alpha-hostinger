@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const SYMBOLS = [
   { id: 'BTC-USD',  label: 'BTC/USD' },
@@ -13,6 +14,7 @@ const SYMBOLS = [
 
 export default function TopBarTicker() {
   const [data, setData] = useState({});
+  const { format } = useCurrency();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,7 +57,7 @@ export default function TopBarTicker() {
             <span className="text-[10px] font-header font-black text-white/40 uppercase tracking-widest">{s.label}</span>
             <div className="flex items-center gap-2">
               <span className={`text-[11px] font-mono font-black ${isUp ? 'text-[#00e676]' : 'text-[#ff1744]'}`}>
-                {item.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {format(item.price)}
               </span>
               <motion.div 
                 animate={{ scale: [1, 1.2, 1], opacity: [0.4, 1, 0.4] }}

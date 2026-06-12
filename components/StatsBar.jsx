@@ -12,6 +12,7 @@ import { useLivePnL } from "@/hooks/useLivePnL";
 import { usePortfolio } from "@/hooks/useFirestore";
 import { useAuth } from "@/contexts/AuthContext";
 import ManualFundingModal from "@/components/ManualFundingModal";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 function RollingNumber({ value, prefix = "" }) {
   return (
@@ -36,7 +37,7 @@ export default function StatsBar({ optimisticTrades = [] }) {
 
   // Live PnL from Binance WebSocket
   const { unrealizedPnL: livePnL, marginUsed } = useLivePnL(optimisticTrades);
-
+  const { convert, symbol } = useCurrency();
 
   useEffect(() => {
     const lvl3Completed = localStorage.getItem("apex_lvl3_index");
@@ -49,6 +50,10 @@ export default function StatsBar({ optimisticTrades = [] }) {
   const unrealizedPnl = livePnL;
   const equity = balance + unrealizedPnl;
   const maintenanceMargin = marginUsed > 0 ? marginUsed : equity * 0.015;
+
+  const convertedEquity = convert(equity);
+  const convertedUnrealizedPnl = convert(unrealizedPnl);
+  const convertedMaintenanceMargin = convert(maintenanceMargin);
 
   // Track peak equity without calling setState inside render
   useEffect(() => {
@@ -82,7 +87,7 @@ export default function StatsBar({ optimisticTrades = [] }) {
             <Wallet size={14} className="text-white" />
           </div>
           <h2 className="text-2xl font-black text-white tracking-tighter mono-nums flex items-center gap-1">
-            $<RollingNumber value={equity.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} />
+            <RollingNumber prefix={symbol} value={convertedEquity.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} />
           </h2>
           
           <div className="mt-2 flex items-center justify-between">
@@ -112,7 +117,7 @@ export default function StatsBar({ optimisticTrades = [] }) {
             <Activity size={14} className={unrealizedPnl >= 0 ? "text-[#00FF41]" : "text-[#FF3131]"} />
           </div>
           <h2 className={`text-2xl font-black tracking-tighter mono-nums ${unrealizedPnl >= 0 ? "text-[#00FF41]" : "text-[#FF3131]"}`}>
-            {unrealizedPnl >= 0 ? "+" : "-"}$<RollingNumber value={Math.abs(unrealizedPnl).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} />
+            {unrealizedPnl >= 0 ? "+" : "-"}<RollingNumber prefix={symbol} value={Math.abs(convertedUnrealizedPnl).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} />
           </h2>
         </motion.div>
 
@@ -129,7 +134,7 @@ export default function StatsBar({ optimisticTrades = [] }) {
             <ShieldAlert size={14} className="text-white" />
           </div>
           <h2 className="text-2xl font-black tracking-tighter mono-nums text-white">
-            $<RollingNumber value={maintenanceMargin.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} />
+            <RollingNumber prefix={symbol} value={convertedMaintenanceMargin.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} />
           </h2>
           <div className="w-full h-1 bg-white/10 mt-2">
             <div className="h-full bg-white/50" style={{ width: '15%' }}></div>

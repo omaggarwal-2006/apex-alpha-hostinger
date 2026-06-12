@@ -9,13 +9,18 @@ const SYMBOL_MAP = {
   'BTC-USD': 'BINANCE:BTCUSDT', 'BITCOIN USD': 'BINANCE:BTCUSDT',
   'ETH-USD': 'BINANCE:ETHUSDT', 'ETHEREUM USD': 'BINANCE:ETHUSDT',
   'SOL-USD': 'BINANCE:SOLUSDT', 'SOLANA USD': 'BINANCE:SOLUSDT',
-  'AAPL': 'NASDAQ:AAPL', 'TSLA': 'NASDAQ:TSLA', 'NVDA': 'NASDAQ:NVDA',
+  'AAPL': 'NASDAQ:AAPL', 'APPLE': 'NASDAQ:AAPL',
+  'TSLA': 'NASDAQ:TSLA', 'TESLA': 'NASDAQ:TSLA',
+  'NVDA': 'NASDAQ:NVDA', 'NVIDIA': 'NASDAQ:NVDA',
   'MSFT': 'NASDAQ:MSFT', 'GOOGL': 'NASDAQ:GOOGL', 'AMZN': 'NASDAQ:AMZN',
   'NIFTY 50': 'NSE:NIFTY', 'BANK NIFTY': 'NSE:BANKNIFTY',
   'NIFTY BANK': 'NSE:BANKNIFTY', 'RELIANCE': 'NSE:RELIANCE',
   'RELIANCE INDUSTRIES LTD': 'NSE:RELIANCE', 'TCS': 'NSE:TCS',
+  'HDFC BANK': 'NSE:HDFCBANK', 'INFOSYS': 'NSE:INFY',
+  'NASDAQ 100': 'NASDAQ:NDX', 'S&P 500': 'AMEX:SPY',
   'CRUDE OIL': 'OANDA:WTICOUSD', 'CRUDE': 'OANDA:WTICOUSD',
   'GOLD': 'OANDA:XAUUSD', 'GOLD JUN 26': 'OANDA:XAUUSD', 'GC=F': 'OANDA:XAUUSD',
+  'USD/INR': 'OANDA:USDINR'
 };
 
 function mapToTVSymbol(asset) {
@@ -47,33 +52,93 @@ const TF_INTERVAL = { '1m': '1', '5m': '5', '15m': '15', '1h': '60', '4h': '240'
 function TVPane({ id, symbol, interval = '15', scriptLoaded, compact = false }) {
   const containerRef = useRef(null);
   const widgetRef    = useRef(null);
+  const prevSymbolRef = useRef(symbol);
+  const prevIntervalRef = useRef(interval);
 
   useEffect(() => {
     if (!scriptLoaded || !window.TradingView || !containerRef.current) return;
-    containerRef.current.innerHTML = '';
-    widgetRef.current = new window.TradingView.widget({
-      autosize:          true,
-      symbol:            mapToTVSymbol(symbol),
-      interval,
-      timezone:          'exchange',
-      theme:             'dark',
-      style:             '1',
-      locale:            'en',
-      toolbar_bg:        '#050505',
-      enable_publishing: false,
-      hide_side_toolbar: false,
-      allow_symbol_change: true,
-      backgroundColor:   '#050505',
-      gridColor:         'rgba(212,175,55,0.03)',
-      container_id:      id,
-    });
-  }, [symbol, interval, scriptLoaded, id, compact]);
+    
+    // Only construct if not already constructed
+    if (!widgetRef.current) {
+      containerRef.current.innerHTML = '';
+      widgetRef.current = new window.TradingView.widget({
+        autosize:          true,
+        symbol:            mapToTVSymbol(symbol),
+        interval,
+        timezone:          'exchange',
+        theme:             'dark',
+        style:             '1',
+        locale:            'en',
+        toolbar_bg:        '#050505',
+        enable_publishing: false,
+        hide_side_toolbar: false,
+        allow_symbol_change: true,
+        backgroundColor:   '#050505',
+        gridColor:         'rgba(212,175,55,0.03)',
+        container_id:      id,
+      });
+      prevSymbolRef.current = symbol;
+      prevIntervalRef.current = interval;
+    }
+  }, [scriptLoaded, id]);
 
-  // Update symbol without recreating widget
+  // Update symbol / interval without recreating widget
   useEffect(() => {
     if (!widgetRef.current || !scriptLoaded) return;
-    try { widgetRef.current.setSymbol(mapToTVSymbol(symbol), interval); } catch {}
+    const tvSymbol = mapToTVSymbol(symbol);
+    if (symbol !== prevSymbolRef.current || interval !== prevIntervalRef.current) {
+      try {
+        if (widgetRef.current.ready) {
+          widgetRef.current.ready(() => {
+            try {
+              widgetRef.current.setSymbol(tvSymbol, interval);
+            } catch (err) {
+              console.warn("setSymbol ready callback error", err);
+            }
+          });
+        } else {
+          widgetRef.current.setSymbol(tvSymbol, interval);
+        }
+        prevSymbolRef.current = symbol;
+        prevIntervalRef.current = interval;
+      } catch (err) {
+        console.warn("setSymbol failed, attempting recreation", err);
+        try {
+          containerRef.current.innerHTML = '';
+          widgetRef.current = new window.TradingView.widget({
+            autosize:          true,
+            symbol:            tvSymbol,
+            interval,
+            timezone:          'exchange',
+            theme:             'dark',
+            style:             '1',
+            locale:            'en',
+            toolbar_bg:        '#050505',
+            enable_publishing: false,
+            hide_side_toolbar: false,
+            allow_symbol_change: true,
+            backgroundColor:   '#050505',
+            gridColor:         'rgba(212,175,55,0.03)',
+            container_id:      id,
+          });
+          prevSymbolRef.current = symbol;
+          prevIntervalRef.current = interval;
+        } catch (recreateErr) {
+          console.error("Widget recreation failed", recreateErr);
+        }
+      }
+    }
   }, [symbol, interval, scriptLoaded]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
+      widgetRef.current = null;
+    };
+  }, []);
 
   return <div id={id} ref={containerRef} className="w-full h-full bg-[#050505]" />;
 }

@@ -3,17 +3,19 @@ import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, LayoutGrid, ShoppingCart, BarChart3, Trash2, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const PINNED = ["^NSEI", "^NSEBANK", "BTC-USD", "ETH-USD", "RELIANCE.NS", "GC=F", "SOL-USD"];
 
 export default function Watchlist({ onAssetSelect, onAction }) {
   const [data, setData] = useState({});
+  const { format } = useCurrency();
 
   useEffect(() => {
     const fetchBatch = async () => {
       try {
         const promises = PINNED.map(s =>
-          axios.get(`http://localhost:3001/api/market/snapshot?symbol=${encodeURIComponent(s)}`)
+          axios.get(`/api/market/snapshot?symbol=${encodeURIComponent(s)}`)
             .then(r => r.data).catch(() => null)
         );
         const results = await Promise.all(promises);
@@ -75,7 +77,7 @@ export default function Watchlist({ onAssetSelect, onAction }) {
                 <div className="text-right">
                   <p className="text-[12px] font-mono font-bold text-white" style={{ fontFamily: "'Roboto Mono', monospace" }}>
                     {item?.price
-                      ? item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      ? format(item.price)
                       : <span className="text-gray-700 text-[10px]">---</span>
                     }
                   </p>
