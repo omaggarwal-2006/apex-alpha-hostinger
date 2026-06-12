@@ -324,7 +324,7 @@ export default function Chart({
   };
 
   return (
-    <div className="bento-card border-[#1a1a1a] flex flex-col relative overflow-hidden w-full" style={{ height: isMobile ? '40vh' : (splitMode === '4' ? 620 : 600) }}>
+    <div className="bento-card border-[#1a1a1a] flex flex-col relative overflow-hidden w-full h-full" style={isMobile ? { height: '40vh' } : {}}>
       <Script src="https://s3.tradingview.com/tv.js" strategy="lazyOnload" onLoad={() => setScriptLoaded(true)} />
 
       {/* Draggable TP/SL lines — only in single mode */}
@@ -363,7 +363,7 @@ export default function Chart({
         {!splitMode && (
           <>
             {/* Symbol search */}
-            <div className="relative flex-1 max-w-[220px]">
+            <div className="relative flex-1 max-w-[240px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={13} />
               <input
                 placeholder="Symbol (BTC, NIFTY, GOLD…)"
@@ -373,12 +373,6 @@ export default function Chart({
                 className="w-full bg-black/40 border border-white/10 py-2 pl-9 pr-4 rounded-xl focus:outline-none focus:border-[#D4AF37]/50 text-xs text-white placeholder-gray-700 transition-all font-bold backdrop-blur-md"
               />
             </div>
-            <button
-              onClick={handleSearch}
-              className="bg-[#D4AF37] hover:brightness-110 text-black font-black py-2 px-4 rounded-xl transition-all text-[10px] uppercase tracking-widest shadow-[0_0_20px_rgba(212,175,55,0.2)]"
-            >
-              Load
-            </button>
 
             {/* Timeframe selector */}
             <div className="flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-lg">
@@ -422,7 +416,7 @@ export default function Chart({
 
         {!splitMode ? (
           <TVPane
-            key={`main-${selectedAsset}-${interval}`}
+            key="tv_chart_main_pane"
             id="tv_chart_main"
             symbol={selectedAsset}
             interval={interval}
@@ -434,7 +428,7 @@ export default function Chart({
               <div key={i} className="relative bg-[#020205]">
                 <PaneHeader symbol={sym} paneIdx={i} onSymbolChange={s => setPaneSymbols(p => { const n=[...p]; n[i]=s; return n; })} />
                 <div className="w-full h-full pt-7">
-                  <TVPane key={`pane-${i}-${sym}-${interval}`} id={`tv_pane_${i}`} symbol={sym} interval={interval} scriptLoaded={scriptLoaded} compact />
+                  <TVPane key={`pane-${i}`} id={`tv_pane_${i}`} symbol={sym} interval={interval} scriptLoaded={scriptLoaded} compact />
                 </div>
               </div>
             ))}
@@ -445,7 +439,7 @@ export default function Chart({
               <div key={i} className="relative bg-[#020205]">
                 <PaneHeader symbol={sym} paneIdx={i} onSymbolChange={s => setPaneSymbols(p => { const n=[...p]; n[i]=s; return n; })} />
                 <div className="w-full h-full pt-7">
-                  <TVPane key={`pane-${i}-${sym}-${interval}`} id={`tv_pane_${i}`} symbol={sym} interval={interval} scriptLoaded={scriptLoaded} compact />
+                  <TVPane key={`pane-${i}`} id={`tv_pane_${i}`} symbol={sym} interval={interval} scriptLoaded={scriptLoaded} compact />
                 </div>
               </div>
             ))}

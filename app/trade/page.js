@@ -324,40 +324,31 @@ export default function TradePage() {
           ${(mobileTab === 'markets' || mobileTab === 'vault') ? 'flex' : 'hidden'}
           md:flex flex-col gap-3 p-3 overflow-hidden h-full
         `}>
-          {/* Top Row: Chart (Left) + StatsBar (Right) */}
+          {/* Top Panel: Chart (Takes 100% width of the center panel) */}
           <div className={`
-            ${mobileTab === 'markets' ? 'flex flex-col md:flex-row' : 'hidden'}
-            md:flex flex-row gap-3 min-h-[250px] md:min-h-[520px] flex-shrink-0 w-full flex-1 md:flex-initial
+            ${mobileTab === 'markets' ? 'flex flex-col' : 'hidden md:flex md:flex-col'}
+            flex-[0.62] relative overflow-hidden glass-panel border-white/10 shadow-2xl w-full
           `}>
-            {/* Chart (78% width on desktop) */}
-            <div className="flex-1 md:flex-[0.78] glass-panel border-white/10 overflow-hidden shadow-2xl relative">
-              <Chart
-                selectedAsset={selectedAsset}
-                onAssetSearch={handleAssetChange}
-                slPrice={slPrice}
-                tpPrice={tpPrice}
-                setSlPrice={setSlPrice}
-                setTpPrice={setTpPrice}
-                splitMode={splitMode}
-                onSplitChange={setSplitMode}
-                setActiveInsight={setActiveInsight}
-                activeTimeframe={activeTimeframe}
-                setActiveTimeframe={setActiveTimeframe}
-              />
-            </div>
-            {/* StatsBar (22% width on desktop, vertical layout) */}
-            {!zenMode && (
-              <div className="hidden md:flex md:flex-[0.22] h-full flex-shrink-0">
-                <StatsBar optimisticTrades={optimisticTrades} layout="vertical" />
-              </div>
-            )}
+            <Chart
+              selectedAsset={selectedAsset}
+              onAssetSearch={handleAssetChange}
+              slPrice={slPrice}
+              tpPrice={tpPrice}
+              setSlPrice={setSlPrice}
+              setTpPrice={setTpPrice}
+              splitMode={splitMode}
+              onSplitChange={setSplitMode}
+              setActiveInsight={setActiveInsight}
+              activeTimeframe={activeTimeframe}
+              setActiveTimeframe={setActiveTimeframe}
+            />
           </div>
 
-          {/* Mobile-only StatsBar for Tab 3 (Vault) */}
+          {/* Unified Horizontally Aligned Account Health Matrix */}
           {!zenMode && (
             <div className={`
-              ${mobileTab === 'vault' ? 'flex h-auto' : 'hidden'}
-              md:hidden w-full flex-shrink-0 items-center justify-center
+              ${mobileTab === 'vault' ? 'flex' : 'hidden md:block'}
+              w-full flex-shrink-0
             `}>
               <StatsBar optimisticTrades={optimisticTrades} layout="horizontal" />
             </div>
@@ -365,8 +356,8 @@ export default function TradePage() {
 
           {/* Bottom Panel: Active Positions Engine */}
           <div className={`
-            ${mobileTab === 'vault' ? 'flex flex-1' : 'hidden'}
-            md:flex overflow-hidden glass-panel border-white/10 p-3 shadow-2xl flex-col
+            ${mobileTab === 'vault' ? 'flex flex-1' : 'hidden md:flex'}
+            flex-[0.38] overflow-hidden glass-panel border-white/10 p-3 shadow-2xl flex-col
           `}>
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white mb-2 border-b border-white/5 pb-1.5 flex-shrink-0">
               Active Positions
