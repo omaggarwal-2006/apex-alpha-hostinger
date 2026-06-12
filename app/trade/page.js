@@ -18,7 +18,7 @@ import PositionEngine from "@/components/PositionEngine";
 import MacroTicker from "@/components/MacroTicker";
 import PolymarketPanel from "@/components/PolymarketPanel";
 import CommandBar from "@/components/CommandBar";
-
+import { Zap, Activity, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLiveTrades } from "@/hooks/useLiveTrades";
 import { usePortfolio } from "@/hooks/useFirestore";
