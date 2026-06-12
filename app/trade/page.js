@@ -324,33 +324,42 @@ export default function TradePage() {
           ${(mobileTab === 'markets' || mobileTab === 'vault') ? 'flex' : 'hidden'}
           md:flex flex-col gap-3 p-3 overflow-hidden h-full
         `}>
-          {/* Top Panel: Interactive Chart */}
+          {/* Top Row: Chart (Left) + StatsBar (Right) */}
           <div className={`
-            ${mobileTab === 'markets' ? 'flex flex-1 md:flex-[0.52]' : 'hidden'}
-            md:flex min-h-[250px] md:min-h-[300px] glass-panel border-white/10 overflow-hidden shadow-2xl relative
+            ${mobileTab === 'markets' ? 'flex flex-col md:flex-row' : 'hidden'}
+            md:flex flex-row gap-3 min-h-[250px] md:min-h-[520px] flex-shrink-0 w-full flex-1 md:flex-initial
           `}>
-            <Chart
-              selectedAsset={selectedAsset}
-              onAssetSearch={handleAssetChange}
-              slPrice={slPrice}
-              tpPrice={tpPrice}
-              setSlPrice={setSlPrice}
-              setTpPrice={setTpPrice}
-              splitMode={splitMode}
-              onSplitChange={setSplitMode}
-              setActiveInsight={setActiveInsight}
-              activeTimeframe={activeTimeframe}
-              setActiveTimeframe={setActiveTimeframe}
-            />
+            {/* Chart (78% width on desktop) */}
+            <div className="flex-1 md:flex-[0.78] glass-panel border-white/10 overflow-hidden shadow-2xl relative">
+              <Chart
+                selectedAsset={selectedAsset}
+                onAssetSearch={handleAssetChange}
+                slPrice={slPrice}
+                tpPrice={tpPrice}
+                setSlPrice={setSlPrice}
+                setTpPrice={setTpPrice}
+                splitMode={splitMode}
+                onSplitChange={setSplitMode}
+                setActiveInsight={setActiveInsight}
+                activeTimeframe={activeTimeframe}
+                setActiveTimeframe={setActiveTimeframe}
+              />
+            </div>
+            {/* StatsBar (22% width on desktop, vertical layout) */}
+            {!zenMode && (
+              <div className="hidden md:flex md:flex-[0.22] h-full flex-shrink-0">
+                <StatsBar optimisticTrades={optimisticTrades} layout="vertical" />
+              </div>
+            )}
           </div>
 
-          {/* Middle Panel: Central Account Health Stats Grid */}
+          {/* Mobile-only StatsBar for Tab 3 (Vault) */}
           {!zenMode && (
             <div className={`
-              ${mobileTab === 'vault' ? 'flex h-[110px]' : 'hidden'}
-              md:flex h-[110px] w-full flex-shrink-0 items-center justify-center
+              ${mobileTab === 'vault' ? 'flex h-auto' : 'hidden'}
+              md:hidden w-full flex-shrink-0 items-center justify-center
             `}>
-              <StatsBar optimisticTrades={optimisticTrades} />
+              <StatsBar optimisticTrades={optimisticTrades} layout="horizontal" />
             </div>
           )}
 

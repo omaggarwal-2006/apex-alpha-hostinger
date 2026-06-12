@@ -28,7 +28,7 @@ function RollingNumber({ value, prefix = "" }) {
   );
 }
 
-export default function StatsBar({ optimisticTrades = [] }) {
+export default function StatsBar({ optimisticTrades = [], layout = "horizontal" }) {
   const { data: portfolio, loading: portfolioLoading } = usePortfolio();
   const balance = portfolio?.accountBalance || 0;
   const peakRef = useRef(0);
@@ -71,11 +71,13 @@ export default function StatsBar({ optimisticTrades = [] }) {
     setShowFunding(true);
   };
 
+  const isVertical = layout === "vertical";
+
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
+      <div className={isVertical ? "flex flex-col gap-3 w-full h-full justify-between" : "grid grid-cols-1 md:grid-cols-4 gap-4 w-full"}>
         {/* Equity Card */}
-        <motion.div whileHover={{ scale: 1.02 }} className="glass-panel p-5 relative group/eq flex flex-col justify-between">
+        <motion.div whileHover={{ scale: 1.02 }} className={`glass-panel ${isVertical ? "p-3.5" : "p-5"} relative group/eq flex flex-col justify-between`}>
           <div className="absolute left-0 top-full mt-2 hidden group-hover/eq:block w-48 bg-[#0A0A0A] border border-white/30 p-2 z-50 shadow-2xl pointer-events-none">
             <p className="text-[10px] font-header text-white uppercase tracking-[0.1em] mb-1 font-bold">What is Total Equity?</p>
             <p className="text-[10px] text-gray-400 font-mono leading-tight">Your total account value. It equals your cash balance plus any Unrealized P&L from open trades.</p>
@@ -86,7 +88,7 @@ export default function StatsBar({ optimisticTrades = [] }) {
             </p>
             <Wallet size={14} className="text-white" />
           </div>
-          <h2 className="text-2xl font-black text-white tracking-tighter mono-nums flex items-center gap-1">
+          <h2 className="text-xl md:text-2xl font-black text-[#00FF41] tracking-tighter mono-nums flex items-center gap-1">
             <RollingNumber prefix={symbol} value={Math.max(0, convertedEquity).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} />
           </h2>
           
@@ -105,7 +107,7 @@ export default function StatsBar({ optimisticTrades = [] }) {
         </motion.div>
 
         {/* Unrealized P&L Card */}
-        <motion.div whileHover={{ scale: 1.02 }} className="glass-panel p-5 relative group/pnl">
+        <motion.div whileHover={{ scale: 1.02 }} className={`glass-panel ${isVertical ? "p-3.5" : "p-5"} relative group/pnl flex flex-col justify-between`}>
           <div className="absolute left-0 top-full mt-2 hidden group-hover/pnl:block w-48 bg-[#0A0A0A] border border-[#00FF41]/30 p-2 z-50 shadow-2xl pointer-events-none">
             <p className="text-[10px] font-header text-[#00FF41] uppercase tracking-[0.1em] mb-1 font-bold">Unrealized P&L</p>
             <p className="text-[10px] text-gray-400 font-mono leading-tight">The current profit or loss of trades that are still open. It's 'unrealized' because it changes with the market until you close the position.</p>
@@ -114,15 +116,15 @@ export default function StatsBar({ optimisticTrades = [] }) {
             <p className="text-gray-500 text-[10px] uppercase tracking-[0.2em] font-bold flex items-center gap-1 cursor-help">
               Unrealized P&L <Info size={10} className="opacity-50" />
             </p>
-            <Activity size={14} className={unrealizedPnl >= 0 ? "text-[#00FF41]" : "text-[#FF3131]"} />
+            <Activity size={14} className="text-[#FF3131]" />
           </div>
-          <h2 className={`text-2xl font-black tracking-tighter mono-nums ${unrealizedPnl >= 0 ? "text-[#00FF41]" : "text-[#FF3131]"}`}>
+          <h2 className="text-xl md:text-2xl font-black tracking-tighter mono-nums text-[#FF3131]">
             {unrealizedPnl >= 0 ? "+" : "-"}<RollingNumber prefix={symbol} value={Math.abs(convertedUnrealizedPnl).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} />
           </h2>
         </motion.div>
 
         {/* Maintenance Margin */}
-        <motion.div whileHover={{ scale: 1.02 }} className="glass-panel p-5 relative group/margin">
+        <motion.div whileHover={{ scale: 1.02 }} className={`glass-panel ${isVertical ? "p-3.5" : "p-5"} relative group/margin flex flex-col justify-between`}>
           <div className="absolute left-0 top-full mt-2 hidden group-hover/margin:block w-48 bg-[#0A0A0A] border border-[#FF3131]/30 p-2 z-50 shadow-2xl pointer-events-none">
             <p className="text-[10px] font-header text-[#FF3131] uppercase tracking-[0.1em] mb-1 font-bold">Maintenance Margin</p>
             <p className="text-[10px] text-gray-400 font-mono leading-tight">The minimum amount of equity required to keep your positions open. If your equity falls below this level, you face a margin call (liquidation).</p>
@@ -133,7 +135,7 @@ export default function StatsBar({ optimisticTrades = [] }) {
             </p>
             <ShieldAlert size={14} className="text-white" />
           </div>
-          <h2 className="text-2xl font-black tracking-tighter mono-nums text-white">
+          <h2 className="text-xl md:text-2xl font-black tracking-tighter mono-nums text-[#00FF41]">
             <RollingNumber prefix={symbol} value={convertedMaintenanceMargin.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} />
           </h2>
           <div className="w-full h-1 bg-white/10 mt-2">
@@ -142,7 +144,7 @@ export default function StatsBar({ optimisticTrades = [] }) {
         </motion.div>
 
         {/* Maximum Drawdown Card */}
-        <motion.div whileHover={{ scale: 1.02 }} className="glass-panel p-5 relative group/dd">
+        <motion.div whileHover={{ scale: 1.02 }} className={`glass-panel ${isVertical ? "p-3.5" : "p-5"} relative group/dd flex flex-col justify-between`}>
           <div className="absolute right-0 top-full mt-2 hidden group-hover/dd:block w-48 bg-[#0A0A0A] border border-[#FF3131]/30 p-2 z-50 shadow-2xl pointer-events-none">
             <p className="text-[10px] font-header text-[#FF3131] uppercase tracking-[0.1em] mb-1 font-bold">Maximum Drawdown</p>
             <p className="text-[10px] text-gray-400 font-mono leading-tight">The largest percentage drop from your peak equity in this session. Tracking drawdown helps manage risk and evaluate strategy consistency.</p>
@@ -153,7 +155,7 @@ export default function StatsBar({ optimisticTrades = [] }) {
             </p>
             <TrendingDown size={14} className="text-[#FF3131]" />
           </div>
-          <h2 className="text-2xl font-black text-[#FF3131] tracking-tighter mono-nums">
+          <h2 className="text-xl md:text-2xl font-black text-[#FF3131] tracking-tighter mono-nums">
             <RollingNumber value={drawdown.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} />%
           </h2>
         </motion.div>
