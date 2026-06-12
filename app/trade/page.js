@@ -300,16 +300,19 @@ export default function TradePage() {
       )}
 
       {/* Row 2: Workspace (Viewport height minus header) */}
-      <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-[20%_55%_25%] overflow-hidden relative pb-16 md:pb-0 h-[calc(100vh-130px)] md:h-[calc(100vh-115px)]">
+      <div className="flex-1 w-full relative overflow-hidden h-[calc(100vh-130px)] md:h-[calc(100vh-115px)] pb-16 md:pb-0">
         {/* Scanline overlay for trade floor */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.03] scanlines z-10" />
+
+        {/* Workspace Columns Grid */}
+        <div className="w-full h-full grid grid-cols-1 md:grid-cols-[20%_55%_25%] overflow-hidden">
 
         {/* COLUMN 1: WATCHLIST (Market Watch) - Dominant left sidebar */}
         <AnimatePresence>
           {!zenMode && (
             <motion.div
               variants={sidebarVariants}
-              className={`${mobileTab === 'markets' ? 'flex h-[45%] md:h-full' : 'hidden'} md:flex flex-col border-r border-white/5 bg-[#020205]/80 overflow-hidden`}
+              className={`${mobileTab === 'markets' ? 'flex h-[45%] md:h-full' : 'hidden'} md:flex md:col-start-1 flex-col border-r border-white/5 bg-[#020205]/80 overflow-hidden`}
             >
               <Watchlist
                 onAssetSelect={handleAssetChange}
@@ -322,7 +325,7 @@ export default function TradePage() {
         {/* COLUMN 2: CENTRAL OPERATIONS MATRIX (Chart + Health Stats + Positions) */}
         <div className={`
           ${(mobileTab === 'markets' || mobileTab === 'vault') ? 'flex' : 'hidden'}
-          md:flex flex-col gap-3 p-3 overflow-hidden h-full
+          md:flex md:col-start-2 flex-col gap-3 p-3 overflow-hidden h-full
         `}>
           {/* Top Panel: Chart (Takes 100% width of the center panel) */}
           <div className={`
@@ -381,7 +384,7 @@ export default function TradePage() {
               transition={{ type: "spring", stiffness: 100, damping: 25 }}
               className={`
                 ${mobileTab === 'trade' ? 'flex flex-col gap-3 p-3' : 'hidden'}
-                md:flex md:flex-col gap-3 p-3 md:pl-0 overflow-hidden h-full
+                md:flex md:flex-col md:col-start-3 gap-3 p-3 md:pl-0 overflow-hidden h-full
               `}
             >
               {/* Top Panel: Execution Terminal */}
@@ -450,6 +453,7 @@ export default function TradePage() {
           )}
         </AnimatePresence>
       </div>
+    </div>
 
       {/* Mobile Bottom Navigation Bar (Stick to bottom on screens < 768px) */}
       {!zenMode && (
